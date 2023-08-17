@@ -1,0 +1,65 @@
+version: 1
+default_environment: dev
+project_id: da2d0b24-f518-4575-96f8-3e8478255f9a
+environments:
+- name: dev
+- name: staging
+- name: prod
+send_anonymous_usage_stats: false
+plugins:
+  extractors:
+  - name: tap-beautifulsoup
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/tap-beautifulsoup.git@v0.1.0
+    config:
+      source_name: sdk-docs
+      site_url: https://sdk.meltano.com/en/latest/
+      output_folder: output
+      parser: html.parser
+      download_recursively: true
+      find_all_kwargs:
+        attrs:
+          role: main
+  loaders:
+  - name: target-pinecone
+    variant: meltanolabs
+    pip_url: git+https://github.com/MeltanoLabs/target-pinecone.git@v0.2.0
+    config:
+      document_text_property: page_content
+      embeddings_property: embeddings
+      metadata_property: metadata
+      pinecone_metadata_text_key: text
+      load_method: overwrite
+  mappers:
+  - name: map-gpt-embeddings
+    variant: meltanolabs
+    pip_url: git+https://github.com/meltanolabs/map-gpt-embeddings.git@50e35fa3912a88a47d0971870176f604c68fd73e
+    mappings:
+    - name: add-embeddings
+      config:
+        document_text_property: page_content
+        document_metadata_property: metadata
+  - name: mapper-generic
+    namespace: mapper_generic
+    pip_url: git+https://github.com/pnadolny13/mapper-generic.git@cdb09aec80d9c139784190959c0a9a801cdaf269
+    executable: mapper-generic
+    mappings:
+    - name: clean-text
+      config:
+        code_path: mappers/clean_text.py
+  utilities:
+  - name: streamlit_app
+    namespace: streamlit_app
+    pip_url: langchain streamlit openai pinecone-client tiktoken
+    commands:
+      demo_ui:
+        executable: streamlit
+        args: run demo_ui/llm_app_ui.py
+jobs:
+- name: reload_pinecone
+  tasks:
+  - tap-beautifulsoup clean-text add-embeddings target-pinecone
+schedules:
+- name: reload_pinecone
+  interval: 0 0 * * 0
+  job: reload_pinecone
