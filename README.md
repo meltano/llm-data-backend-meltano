@@ -1,6 +1,6 @@
 # LLM Data Backend - Powered By Meltano
 
-This Meltano project is an example of the project described in this [blog post](TBD).
+This Meltano project is an example of the project described in this [blog post](https://meltano.com/blog/llm-apps-are-mostly-data-pipelines/).
 
 ## Prereqs
 - An OpenAI account and API key
